@@ -12,15 +12,11 @@ liq = int(input("Cual es el numero de liquidacion?:"))
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
 mydb = myclient["Tarjetas"]
 mycol = mydb["cupones_minuto"]
-sinte = mydb["Liquidacion"]
 loc = ("sinteplast.xlsx")
 wb = xlrd.open_workbook(loc)
 sheet = wb.sheet_by_index(0)
-#abro libro pendientes
-workbook = xlsxwriter.Workbook('pendientes.xlsx')
-worksheet = workbook.add_worksheet()
 #comienzo a recorrer
-for _ in range(1,365):
+for _ in range(1,sheet.nrows):
     fecha = sheet.cell_value(_,6)
     fecha = fecha.split('.')
     fecha = datetime.datetime(year=int(fecha[2]),month= int(fecha[1]),day= int(fecha[0]))
@@ -31,10 +27,10 @@ for _ in range(1,365):
         'fecha': fecha,
         'cuotas': sheet.cell_value(_,7),
         'lote': sheet.cell_value(_,8),
-        'liqui': ''
+        'liqui': 0
     }
-
-    myquery = { "liquidacion": "" , "importe": dir.get('importe') , "fecha": dir.get('fecha')}
+    print(sheet.row_values(_))
+    myquery = { "liquidacion": 0 , "importe": dir.get('importe') , "fecha": dir.get('fecha')}
     if mycol.count_documents(myquery) == 1:
         x = mycol.find_one(myquery)
         id = x.get("_id")
@@ -60,15 +56,37 @@ for _ in range(1,365):
         dir["liqui"] = 1
         contador += 1    
 
-    #Muestro lo que cargo
-co = 1
+    #Se genera el reporte de pendientes
+    #abro libro pendientes
+workbook = xlsxwriter.Workbook('pendientes.xlsx')
+worksheet = workbook.add_worksheet()
+co = 2
+worksheet.write('A1','descripcion')
+worksheet.write('B1','desc')
+worksheet.write('C1','coutas')
+worksheet.write('D1','fecha')
+worksheet.write('E1','lote')
+worksheet.write('F1','importe')
+total=0
 for elements in no_match:
     fila = 'A' + str(co)
-    print(elements)
-    str(elements)
-    print(type(str(elements)))
-    worksheet.write(fila,str(elements))
+    worksheet.write(fila,str(elements.get('descripcion')))
+    fila = 'B' + str(co)
+    worksheet.write(fila,str(elements.get('desc')))
+    fila = 'C' + str(co)
+    worksheet.write(fila,str(elements.get('cuotas')))
+    fila = 'D' + str(co)
+    worksheet.write(fila,str(elements.get('fecha')))
+    fila = 'E' + str(co)
+    worksheet.write(fila,str(elements.get('lote')))
+    fila = 'F' + str(co)
+    worksheet.write(fila,float(elements.get('importe')))
+    total += (elements.get('importe'))
+    
     co += 1
+    fila = 'F' + str(co)
+    worksheet.write(fila,float(total))
 workbook.close()
+#Muestro lo que cargo
 print("se cargaron: {} cupones a la base de datos".format(contador))
 print("elementos que no se encontraron:", no_contador)
